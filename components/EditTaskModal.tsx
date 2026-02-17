@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useEffect } from "react";
+7;
 
 const taskSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
