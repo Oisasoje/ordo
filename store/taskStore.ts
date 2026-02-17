@@ -54,6 +54,7 @@ const defaultTasks: Task[] = [
   {
     id: 3,
     title: "Design wireframes",
+    description: "Create wireframes for the landing page",
     priority: "Low",
     createdAt: now - 1000 * 60 * 60 * 24 * 5,
     dueDate: now - 1000 * 60 * 60 * 24,
@@ -63,6 +64,7 @@ const defaultTasks: Task[] = [
   {
     id: 4,
     title: "Setup database",
+    description: "Setup database for the application",
     priority: "Medium",
     createdAt: now,
     dueDate: now + 1000 * 60 * 60 * 24,
