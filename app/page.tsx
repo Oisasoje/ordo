@@ -1,367 +1,222 @@
 "use client";
 
-import AuthGuard from "@/components/AuthGuard";
-import TaskColumn, { TaskCard } from "@/components/todo";
-import useTaskStore, { Task, TaskStatus } from "@/store/taskStore";
-import { Search, Plus, LogOut, RefreshCw } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import CreateTaskModal from "@/components/CreateTaskModal";
-import EditTaskModal from "@/components/EditTaskModal";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import { restrictToWindowEdges } from "@dnd-kit/modifiers";
+import { Lock, Mail, Loader2, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 
-import ThemeToggle from "@/components/ThemeToggle";
-
-export default function BoardPage() {
-  const {
-    tasks,
-    activities,
-    resetTasks,
-    searchQuery,
-    setSearchQuery,
-    priorityFilter,
-    setPriorityFilter,
-    sortBy,
-    setSortBy,
-    moveTask,
-  } = useTaskStore();
-  const { logout, user } = useAuthStore();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [activeTask, setActiveTask] = useState<Task | null>(null);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const resetConfirmRef = useRef<HTMLDivElement>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-  );
+export default function LoginPage() {
+  const { login, isAuthenticated } = useAuthStore();
+  const router = useRouter();
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        resetConfirmRef.current &&
-        !resetConfirmRef.current.contains(event.target as Node)
-      ) {
-        setShowResetConfirm(false);
+    if (isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const success = await login(email, password, remember);
+
+      if (success) {
+        router.push("/dashboard");
+      } else {
+        setError("Invalid email or password. Please try again.");
       }
-    };
-
-    if (showResetConfirm) {
-      document.addEventListener("mousedown", handleClickOutside);
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showResetConfirm]);
-
-  const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return "just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return new Date(timestamp).toLocaleDateString();
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case "Created":
-        return "bg-green-500";
-      case "Edited":
-        return "bg-blue-500";
-      case "Moved":
-        return "bg-yellow-500";
-      case "Deleted":
-        return "bg-red-500";
-      default:
-        return "bg-gray-500";
-    }
-  };
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over) return;
-
-    const taskId = active.id as number;
-    const newStatus = over.id as TaskStatus;
-
-    moveTask(taskId, newStatus);
-    setActiveTask(null);
-  };
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const task = tasks.find((t: Task) => t.id === (event.active.id as number));
-    if (task) setActiveTask(task);
-  };
+  }
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-neutral-50 dark:bg-gray-950 text-neutral-900 dark:text-white leading-relaxed font-sans antialiased">
-        {/* Header */}
-        <header className="bg-white dark:bg-gray-900 border-b border-neutral-200 dark:border-gray-800 sticky top-0 z-10 transition-colors">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <h1 className="text-xl font-semibold text-neutral-900 dark:text-white">
-                TaskFlow Board
-              </h1>
+    <div className="min-h-screen flex bg-white">
+      <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
+        <div className="mx-auto w-full max-w-sm lg:w-96">
+          <div className="mb-6">
+            <h1 className="text-3xl font-extrabold text-neutral-900 tracking-tight">
+              Welcome back
+            </h1>
+            <p className="mt-3 text-sm text-neutral-500 font-medium">
+              Start managing your tasks with Ordo today.
+            </p>
+          </div>
 
-              <div className="flex items-center gap-2 sm:gap-3">
-                <ThemeToggle />
-                <div className="relative" ref={resetConfirmRef}>
-                  <button
-                    onClick={() => setShowResetConfirm(!showResetConfirm)}
-                    className="px-3 sm:px-4 py-2 cursor-pointer text-sm bg-white dark:bg-gray-800 border border-neutral-300 dark:border-gray-700 rounded-lg hover:bg-neutral-50 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors dark:text-white"
-                    aria-label="Reset Board"
-                  >
-                    <RefreshCw
-                      className={`w-4 h-4 ${showResetConfirm ? "animate-spin-once" : ""}`}
-                    />
-                    <span className="hidden sm:inline">Reset Board</span>
-                  </button>
-
-                  {showResetConfirm && (
-                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-neutral-200 dark:border-gray-700 p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
-                      <p className="text-sm text-neutral-600 dark:text-gray-300 mb-4">
-                        Are you sure? This will clear all tasks and your
-                        activity history.
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setShowResetConfirm(false)}
-                          className="flex-1 px-3 py-1.5 text-xs font-medium text-neutral-600 dark:text-gray-300 hover:bg-neutral-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => {
-                            resetTasks();
-                            setShowResetConfirm(false);
-                          }}
-                          className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors cursor-pointer"
-                        >
-                          Confirm
-                        </button>
-                      </div>
-                    </div>
-                  )}
+          <div className="mt-8">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                  {error}
                 </div>
+              )}
 
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="px-3 sm:px-4 py-2 cursor-pointer text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                  aria-label="New Task"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">New Task</span>
-                </button>
-
-                <button
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all cursor-pointer group"
-                  title="Logout"
-                >
-                  <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Search and Filters */}
-          <div className="mb-8 space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="Search tasks..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-neutral-300 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-                />
-              </div>
-
-              <div className="flex flex-wrap bg-white dark:bg-gray-800 border border-neutral-300 dark:border-gray-700 rounded-lg p-1 gap-1">
-                {(["All", "High", "Medium", "Low"] as const).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPriorityFilter(p)}
-                    className={`px-3 py-1 text-sm rounded-md transition-all cursor-pointer flex-1 md:flex-none ${
-                      priorityFilter === p
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-neutral-600 dark:text-gray-400 hover:bg-neutral-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative flex items-center">
-                <span className="absolute left-3 text-xs font-medium text-neutral-400 uppercase pointer-events-none">
-                  Sort
-                </span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="w-full md:w-auto pl-14 pr-4 py-2 cursor-pointer border border-neutral-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none min-w-[150px]"
-                >
-                  <option value="Due date">Due date</option>
-                  <option value="Priority">Priority</option>
-                  <option value="Created date">Created date</option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Kanban Board */}
-          <DndContext
-            sensors={sensors}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            modifiers={[restrictToWindowEdges]}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <TaskColumn
-                status="Todo"
-                title="Todo"
-                onEdit={(task) => setEditingTask(task)}
-              />
-              <TaskColumn
-                status="Doing"
-                title="Doing"
-                onEdit={(task) => setEditingTask(task)}
-              />
-              <TaskColumn
-                status="Done"
-                title="Done"
-                onEdit={(task) => setEditingTask(task)}
-              />
-            </div>
-
-            <DragOverlay>
-              {activeTask ? (
-                <div className="w-[calc(33.333vw-2rem)] max-w-sm rotate-3 opacity-90 scale-105 pointer-events-none transition-transform">
-                  <TaskCard
-                    task={activeTask}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                    onPriorityClick={() => {}}
+              <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-neutral-700">
+                  Email address
+                </label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400 group-focus-within:text-blue-600 transition-colors">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <input
+                    required
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="intern@demo.com"
+                    className="block w-full pl-11 pr-4 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all text-neutral-900 placeholder:text-neutral-400"
                   />
                 </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+              </div>
 
-          {/* Activity Log */}
-          <div className="mt-8 bg-white dark:bg-gray-900 rounded-lg border border-neutral-200 dark:border-gray-800 p-4">
-            <h3 className="font-semibold text-neutral-900 dark:text-white mb-4">
-              Recent Activity
-            </h3>
-            <div className="space-y-3 max-h-[300px] overflow-y-auto">
-              {activities.length === 0 ? (
-                <p className="text-sm text-neutral-400 italic">
-                  No recent activity
-                </p>
-              ) : (
-                activities.map((activity) => (
-                  <div
-                    key={activity.id}
-                    className="flex items-center gap-3 text-sm animate-in slide-in-from-left-2 duration-200"
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-sm font-semibold text-neutral-700">
+                    Password
+                  </label>
+                </div>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400 group-focus-within:text-blue-600 transition-colors">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <input
+                    required
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="block w-full pl-11 pr-12 py-3 bg-neutral-50 border border-neutral-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 focus:bg-white transition-all text-neutral-900 placeholder:text-neutral-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
                   >
-                    <span
-                      className={`w-2 h-2 rounded-full ${getActionColor(activity.action)}`}
-                    ></span>
-                    <span className="text-neutral-600 dark:text-gray-400">
-                      Task{" "}
-                      <span className="font-medium text-neutral-900 dark:text-white">
-                        "{activity.taskTitle}"
-                      </span>{" "}
-                      {activity.action.toLowerCase()}
-                      {activity.action === "Moved" && activity.metadata && (
-                        <span className="text-neutral-400 ml-1">
-                          ({activity.metadata.from} → {activity.metadata.to})
-                        </span>
-                      )}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center">
+                <label className="flex items-center gap-2.5 cursor-pointer group">
+                  <div className="relative flex items-center justify-center">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="w-4.5 h-4.5 rounded-lg border-neutral-300 text-blue-600 focus:ring-blue-600/20 cursor-pointer transition-all"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-neutral-600 group-hover:text-neutral-900 transition-colors">
+                    Stay signed in for 30 days
+                  </span>
+                </label>
+              </div>
+
+              <button
+                disabled={loading}
+                type="submit"
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-blue-200 hover:shadow-blue-300 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer mt-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in to Ordo"
+                )}
+              </button>
+            </form>
+
+            <div className="mt-10">
+              <div className="relative">
+                <div
+                  className="absolute inset-0 flex items-center"
+                  aria-hidden="true"
+                >
+                  <div className="w-full border-t border-neutral-100"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-3 bg-white text-neutral-400 font-medium uppercase tracking-widest text-[10px]">
+                    Demo Access
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-3">
+                <div className="group flex items-center justify-between p-4 bg-neutral-50 hover:bg-neutral-100 border border-neutral-200 rounded-2xl transition-all cursor-default">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-tight">
+                      Email
                     </span>
-                    <span className="text-neutral-400 text-xs ml-auto">
-                      {formatTimeAgo(activity.timestamp)}
+                    <span className="text-sm font-mono font-semibold text-neutral-700">
+                      intern@demo.com
                     </span>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
-        </main>
-        <CreateTaskModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-        />
-        <EditTaskModal
-          isOpen={!!editingTask}
-          onClose={() => setEditingTask(null)}
-          task={editingTask}
-        />
-
-        {/* Logout Confirmation Modal */}
-        {showLogoutConfirm && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-md animate-in fade-in duration-200"
-            onClick={() => setShowLogoutConfirm(false)}
-          >
-            <div
-              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 border border-neutral-100 dark:border-gray-700"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-8 text-center">
-                <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 mx-auto mb-6 flex items-center justify-center ring-8 ring-red-50/50 dark:ring-red-900/10">
-                  <LogOut className="w-8 h-8" />
-                </div>
-                <h3 className="text-xl font-bold text-neutral-900 dark:text-white mb-3 tracking-tight">
-                  Sign out of Ordo?
-                </h3>
-                <p className="text-neutral-500 dark:text-gray-400 mb-8 leading-relaxed">
-                  Are you sure you want to sign out? You'll need to enter your
-                  credentials to access your tasks again.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 px-4 py-3 border border-neutral-200 dark:border-gray-700 text-neutral-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-neutral-50 dark:hover:bg-gray-700 rounded-xl transition-all font-semibold cursor-pointer active:scale-[0.98]"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      logout();
-                      setShowLogoutConfirm(false);
-                    }}
-                    className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl transition-all font-semibold shadow-lg shadow-red-200 dark:shadow-none active:scale-[0.98] cursor-pointer"
-                  >
-                    Sign out
-                  </button>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-tight">
+                      Password
+                    </span>
+                    <span className="text-sm font-mono font-semibold text-neutral-700">
+                      intern123
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
-    </AuthGuard>
+
+      {/* Right Column: Image */}
+      <div className="hidden lg:block relative flex-1 w-0 overflow-hidden">
+        <Image
+          priority
+          src="/login-img.jpg"
+          alt="Login visual"
+          fill
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-linear-to-t from-blue-900/90 via-blue-900/20 to-transparent"></div>
+        <div className="absolute bottom-10 left-20 right-20">
+          <div className="max-w-xl">
+            <h2 className="text-4xl font-bold text-white tracking-tight mb-6">
+              Organize your workflow <br /> with precision.
+            </h2>
+            <div className="flex gap-1 mb-8">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className={`h-1 rounded-full transition-all ${i === 1 ? "w-8 bg-blue-500" : "w-2 bg-white/30"}`}
+                />
+              ))}
+            </div>
+            <p className="text-lg text-blue-50/80 font-medium leading-relaxed">
+              Experience the next generation of task management with Ordo.
+              Beautifully designed, expertly crafted.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

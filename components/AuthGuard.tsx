@@ -12,11 +12,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!isAuthenticated && pathname !== "/login") {
-      router.replace("/login");
+    if (!isAuthenticated && pathname !== "/") {
+      router.replace("/");
     }
 
-    if (isAuthenticated && pathname === "/login") {
+    if (isAuthenticated && pathname === "/") {
       router.replace("/dashboard");
     }
   }, [hasHydrated, isAuthenticated, pathname, router]);
@@ -29,7 +29,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated && pathname !== "/login") return null;
+  if (!isAuthenticated && pathname !== "/") return null;
 
   return <>{children}</>;
 }

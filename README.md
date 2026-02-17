@@ -10,7 +10,7 @@ The goal of this project is to demonstrate strong frontend engineering practices
 
 ### Authentication
 
-- Static login flow
+- Login flow at root (/)
 - Hardcoded credentials validation
 - Proper error handling for invalid login
 - Optional **Remember Me** session persistence
@@ -113,9 +113,9 @@ Available Scripts
 
 ordo/
 ├─ app/
-│ ├─ login/
-│ │ └─ page.tsx
-│ ├─ page.tsx (Dashboard)
+│ ├─ dashboard/
+│ │ └─ page.tsx (Dashboard)
+│ ├─ page.tsx (Login)
 │ ├─ layout.tsx
 │ └─ globals.css
 ├─ components/
@@ -124,7 +124,7 @@ ordo/
 │ ├─ EditTaskModal.tsx
 │ ├─ ThemeProvider.tsx
 │ ├─ ThemeToggle.tsx
-│ └─ todo.tsx
+│ ├─ todo.tsx
 ├─ store/
 │ ├─ taskStore.ts
 │ ├─ authStore.ts
